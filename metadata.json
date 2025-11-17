@@ -1,0 +1,5 @@
+{
+  "name": "Catalogo de Motos JT",
+  "description": "Una aplicación web para un catálogo de motocicletas en Cuba, con un panel de administración para gestionar el inventario, todo conectado a Supabase.",
+  "requestFramePermissions": []
+}
