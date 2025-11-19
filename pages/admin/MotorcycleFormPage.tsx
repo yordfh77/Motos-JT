@@ -1,5 +1,4 @@
 
-
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../../services/supabaseClient';
@@ -109,26 +108,46 @@ const MotorcycleFormPage: React.FC = () => {
     };
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files) {
-            const files = Array.from(e.target.files);
+        if (e.target.files && e.target.files.length > 0) {
+            const newFiles = Array.from(e.target.files);
             
-            // Validar que no exceda 5 imágenes
-            if (existingImages.length + files.length > 5) {
-                alert(`Solo se permiten hasta 5 imágenes por moto. Tienes ${existingImages.length} imágenes guardadas y has seleccionado ${files.length} nuevas. Por favor, elimina algunas imágenes existentes o selecciona menos.`);
+            // Calculate total images: Existing ones + Currently staged ones + New ones trying to add
+            const currentTotal = existingImages.length + imageFiles.length;
+            
+            // Validar que no exceda 5 imágenes en total
+            if (currentTotal + newFiles.length > 5) {
+                const remainingSlots = 5 - currentTotal;
+                alert(`Solo se permiten hasta 5 imágenes por moto. Tienes ${currentTotal} seleccionadas. Solo puedes agregar ${remainingSlots} más.`);
                 e.target.value = ''; // Reset input
                 return;
             }
 
-            setImageFiles(files);
-            // FIX: The `file` argument was being inferred as `unknown`. Cast to Blob to fix.
-            const previews = files.map(file => URL.createObjectURL(file as Blob));
-            setImagePreviews(previews);
+            // Append new files to existing state instead of replacing
+            setImageFiles(prev => [...prev, ...newFiles]);
+            
+            // Generate previews for new files
+            const newPreviews = newFiles.map(file => URL.createObjectURL(file));
+            setImagePreviews(prev => [...prev, ...newPreviews]);
+
+            // Reset input to allow selecting the same file again if needed (or adding more batches)
+            e.target.value = '';
         }
     };
     
+    const handleRemoveNewImage = (index: number) => {
+        // Revoke the URL to avoid memory leaks
+        URL.revokeObjectURL(imagePreviews[index]);
+
+        setImageFiles(prev => prev.filter((_, i) => i !== index));
+        setImagePreviews(prev => prev.filter((_, i) => i !== index));
+    };
+
     useEffect(() => {
-        return () => imagePreviews.forEach(url => URL.revokeObjectURL(url));
-    }, [imagePreviews]);
+        // Cleanup function when component unmounts to revoke all object URLs
+        return () => {
+            imagePreviews.forEach(url => URL.revokeObjectURL(url));
+        };
+    }, []); // Only on unmount
 
     const handleRemoveExistingImage = async (imageUrl: string) => {
         if (!window.confirm("¿Seguro que quieres eliminar esta imagen? Esta acción se aplicará al guardar.")) return;
@@ -142,6 +161,13 @@ const MotorcycleFormPage: React.FC = () => {
             setFormError("El nombre y la categoría son obligatorios.");
             return;
         }
+
+        // Validation for positive price
+        if (!moto.precio || Number(moto.precio) <= 0) {
+             setFormError("El precio debe ser un número mayor a 0.");
+             return;
+        }
+
         setLoading(true);
         setFormError(null);
 
@@ -231,16 +257,42 @@ const MotorcycleFormPage: React.FC = () => {
                                 {categories.map(cat => <option key={cat.id} value={cat.nombre}>{cat.nombre}</option>)}
                             </select>
                         </div>
+                        
+                        {/* Price and Currency Combined Input */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Precio</label>
-                            <input type="number" name="precio" value={moto.precio} onChange={handleInputChange} min="0" className="w-full form-input" required />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Moneda</label>
-                            <select name="moneda" value={moto.moneda} onChange={handleInputChange} className="w-full form-select">
-                                <option value="USD">USD</option>
-                                <option value="MLC">MLC</option>
-                            </select>
+                            <label htmlFor="price" className="block text-sm font-medium text-gray-700 mb-1">Precio</label>
+                            <div className="relative rounded-md shadow-sm">
+                                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                    <span className="text-gray-500 sm:text-sm">$</span>
+                                </div>
+                                <input
+                                    type="number"
+                                    name="precio"
+                                    id="price"
+                                    className="block w-full rounded-md border-gray-300 pl-7 pr-20 focus:border-brand-blue focus:ring-brand-blue py-2 border shadow-sm sm:text-sm"
+                                    placeholder="0.00"
+                                    value={moto.precio}
+                                    onChange={handleInputChange}
+                                    min="0.01"
+                                    step="0.01"
+                                    required
+                                />
+                                <div className="absolute inset-y-0 right-0 flex items-center">
+                                    <label htmlFor="currency" className="sr-only">Moneda</label>
+                                    <select
+                                        id="currency"
+                                        name="moneda"
+                                        className="h-full rounded-md border-0 bg-transparent py-0 pl-2 pr-7 text-gray-500 focus:ring-2 focus:ring-inset focus:ring-brand-blue sm:text-sm font-bold"
+                                        value={moto.moneda}
+                                        onChange={handleInputChange}
+                                    >
+                                        <option value="USD">USD</option>
+                                        <option value="MLC">MLC</option>
+                                        <option value="CUP">CUP</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <p className="mt-1 text-xs text-gray-500">El valor debe ser positivo.</p>
                         </div>
                     </div>
                     <div>
@@ -273,24 +325,39 @@ const MotorcycleFormPage: React.FC = () => {
                 <FormSection title="Multimedia">
                      <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">Imágenes (Máx. 5)</label>
-                        <input type="file" multiple onChange={handleImageChange} accept="image/*" className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-brand-blue hover:file:bg-blue-100" />
-                        <p className="text-xs text-gray-500 mt-2">Puedes subir hasta 5 imágenes en total. La primera será la principal.</p>
+                        <input 
+                            type="file" 
+                            multiple 
+                            onChange={handleImageChange} 
+                            accept="image/*" 
+                            className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-brand-blue hover:file:bg-blue-100" 
+                        />
+                        <p className="text-xs text-gray-500 mt-2">
+                            Seleccionadas: {existingImages.length + imageFiles.length} / 5. 
+                            Puedes subir hasta 5 imágenes en total.
+                        </p>
                         
                         {(existingImages.length > 0 || imagePreviews.length > 0) && (
                              <div className="mt-6">
                                 <h4 className="text-md font-semibold text-gray-700 mb-3">Previsualización de Imágenes</h4>
                                 <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-4">
+                                    {/* Existing Images (Server) */}
                                     {existingImages.map((imgUrl) => (
                                         <div key={imgUrl} className="relative group aspect-square">
                                             <img src={imgUrl} alt="Imagen existente" className="w-full h-full object-cover rounded-lg shadow-sm" />
-                                            <button type="button" onClick={() => handleRemoveExistingImage(imgUrl)} className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full p-1 leading-none w-6 h-6 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity focus:opacity-100">
+                                            <button type="button" onClick={() => handleRemoveExistingImage(imgUrl)} className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full p-1 leading-none w-6 h-6 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity focus:opacity-100 hover:bg-red-700">
                                                 &#x2715;
                                             </button>
                                         </div>
                                     ))}
+                                    
+                                    {/* New Images (Local Preview) */}
                                      {imagePreviews.map((previewUrl, index) => (
-                                        <div key={index} className="relative group aspect-square">
-                                            <img src={previewUrl} alt={`Previsualización ${index + 1}`} className="w-full h-full object-cover rounded-lg shadow-sm" />
+                                        <div key={previewUrl} className="relative group aspect-square">
+                                            <img src={previewUrl} alt={`Previsualización ${index + 1}`} className="w-full h-full object-cover rounded-lg shadow-sm border-2 border-brand-blue" />
+                                            <button type="button" onClick={() => handleRemoveNewImage(index)} className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full p-1 leading-none w-6 h-6 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity focus:opacity-100 hover:bg-red-700">
+                                                &#x2715;
+                                            </button>
                                         </div>
                                     ))}
                                 </div>

@@ -13,7 +13,7 @@ export interface Motorcycle {
     nombre: string;
     categoria: string;
     precio: number;
-    moneda: 'USD' | 'MLC';
+    moneda: 'USD' | 'MLC' | 'CUP';
     descripcion: string;
     especificaciones: Specifications;
     imagenes: string[];
