@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import { HashRouter, Routes, Route, Outlet } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
@@ -14,15 +15,18 @@ import CategoriesListPage from './pages/admin/CategoriesListPage';
 import AccountPage from './pages/admin/AccountPage';
 import ProtectedRoute from './components/ProtectedRoute';
 
-function App() {
-    const ProtectedAdminLayout = () => (
-        <ProtectedRoute>
-            <AdminLayout>
-                <Outlet />
-            </AdminLayout>
-        </ProtectedRoute>
-    );
+// FIX: Defined ProtectedAdminLayout outside of the App component.
+// This prevents the component from being recreated on every render, which is a React best practice
+// and can resolve complex type-checking issues.
+const ProtectedAdminLayout = () => (
+    <ProtectedRoute>
+        <AdminLayout>
+            <Outlet />
+        </AdminLayout>
+    </ProtectedRoute>
+);
 
+function App() {
     return (
         <AuthProvider>
             <HashRouter>

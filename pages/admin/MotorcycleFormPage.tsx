@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../../services/supabaseClient';
@@ -111,7 +112,8 @@ const MotorcycleFormPage: React.FC = () => {
         if (e.target.files) {
             const files = Array.from(e.target.files);
             setImageFiles(files);
-            const previews = files.map(file => URL.createObjectURL(file));
+            // FIX: The `file` argument was being inferred as `unknown`. Cast to Blob to fix.
+            const previews = files.map(file => URL.createObjectURL(file as Blob));
             setImagePreviews(previews);
         }
     };
@@ -244,7 +246,6 @@ const MotorcycleFormPage: React.FC = () => {
                         {specFields.map(field => (
                              <div key={field.name}>
                                 <label className="block text-sm font-medium text-gray-700 mb-1 capitalize">{field.placeholder}</label>
-                                {/* FIX: The `name` attribute must be a string. `field.name` is `string | number` due to the index signature on `Specifications`. */}
                                 <input
                                     type="text"
                                     name={field.name as string}

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { supabase } from '../../services/supabaseClient';
 import { Spinner } from '../../components/Spinner';
 import { Motorcycle } from '../../types';
@@ -11,7 +12,7 @@ interface Stats {
 }
 
 const StatCard: React.FC<{ title: string; value: number | string, icon: React.ReactNode }> = ({ title, value, icon }) => (
-    <div className="bg-white p-6 rounded-xl shadow-md flex items-center space-x-4">
+    <div className="bg-white p-6 rounded-xl shadow-md flex items-center space-x-4 transition-transform duration-300 transform hover:-translate-y-1 hover:shadow-lg">
         <div className="bg-brand-blue/10 text-brand-blue rounded-full p-3">
             {icon}
         </div>
@@ -97,10 +98,18 @@ const DashboardPage: React.FC = () => {
             <h1 className="text-3xl font-bold text-gray-800 mb-6">Resumen del Catálogo</h1>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <StatCard title="Total de Motos" value={stats?.totalMotos ?? 0} icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6V4m0 16v-2m0-8v-2m0 16V4m6 8h2m-16 0h2m14 0h-2m-8 0h-2m14 0h-2m-2-8l-2-2m0 12l2-2m-12 0l-2 2m0-12l2 2m12 0l-2 2" /></svg>} />
-                <StatCard title="Motos Activas" value={stats?.activeMotos ?? 0} icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>} />
-                <StatCard title="Motos Destacadas" value={stats?.featuredMotos ?? 0} icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>} />
-                <StatCard title="Categorías" value={stats?.categories ?? 0} icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2H5a2 2 0 00-2 2v2" /></svg>} />
+                <Link to="/admin/motos">
+                    <StatCard title="Total de Motos" value={stats?.totalMotos ?? 0} icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6V4m0 16v-2m0-8v-2m0 16V4m6 8h2m-16 0h2m14 0h-2m-8 0h-2m14 0h-2m-2-8l-2-2m0 12l2-2m-12 0l-2 2m0-12l2 2m12 0l-2 2" /></svg>} />
+                </Link>
+                <Link to="/admin/motos">
+                    <StatCard title="Motos Activas" value={stats?.activeMotos ?? 0} icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>} />
+                </Link>
+                <Link to="/admin/motos">
+                    <StatCard title="Motos Destacadas" value={stats?.featuredMotos ?? 0} icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>} />
+                </Link>
+                <Link to="/admin/categorias">
+                    <StatCard title="Categorías" value={stats?.categories ?? 0} icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2H5a2 2 0 00-2 2v2" /></svg>} />
+                </Link>
             </div>
 
             <div className="bg-white p-6 rounded-xl shadow-md">
