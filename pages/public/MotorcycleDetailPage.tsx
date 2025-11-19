@@ -24,100 +24,6 @@ const MotorcycleCard: React.FC<{ moto: Motorcycle }> = ({ moto }) => (
     </div>
 );
 
-// Full Screen Image Viewer Component
-const Lightbox: React.FC<{ 
-    isOpen: boolean; 
-    images: string[]; 
-    initialIndex: number; 
-    onClose: () => void;
-}> = ({ isOpen, images, initialIndex, onClose }) => {
-    const [currentIndex, setCurrentIndex] = useState(initialIndex);
-    const [isZoomed, setIsZoomed] = useState(false);
-
-    useEffect(() => {
-        if (isOpen) {
-            setCurrentIndex(initialIndex);
-            setIsZoomed(false);
-            document.body.style.overflow = 'hidden'; // Prevent scrolling underneath
-        } else {
-            document.body.style.overflow = 'auto';
-        }
-        return () => {
-             document.body.style.overflow = 'auto';
-        };
-    }, [isOpen, initialIndex]);
-
-    if (!isOpen) return null;
-
-    const handleNext = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        setIsZoomed(false);
-        setCurrentIndex((prev) => (prev + 1) % images.length);
-    };
-
-    const handlePrev = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        setIsZoomed(false);
-        setCurrentIndex((prev) => (prev - 1 + images.length) % images.length);
-    };
-
-    const toggleZoom = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        setIsZoomed(!isZoomed);
-    };
-
-    return (
-        <div 
-            className="fixed inset-0 z-[60] bg-black bg-opacity-95 flex items-center justify-center transition-opacity duration-300"
-            onClick={onClose}
-        >
-            {/* Close Button */}
-            <button 
-                onClick={onClose}
-                className="absolute top-4 right-4 text-white text-4xl z-[70] hover:text-gray-300 focus:outline-none"
-            >
-                &times;
-            </button>
-
-            {/* Image Container */}
-            <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
-                <img 
-                    src={images[currentIndex]} 
-                    alt={`Zoomed ${currentIndex}`} 
-                    className={`max-w-full max-h-full object-contain transition-transform duration-300 ease-in-out cursor-zoom-in ${isZoomed ? 'scale-150 cursor-zoom-out' : ''}`}
-                    onClick={toggleZoom}
-                    style={{ transform: isZoomed ? 'scale(2)' : 'scale(1)' }}
-                />
-            </div>
-
-            {/* Navigation */}
-            {images.length > 1 && (
-                <>
-                    <button 
-                        onClick={handlePrev}
-                        className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white/10 hover:bg-white/20 text-white p-3 rounded-full backdrop-blur-sm transition-colors z-[70]"
-                    >
-                         <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                        </svg>
-                    </button>
-                    <button 
-                        onClick={handleNext}
-                        className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white/10 hover:bg-white/20 text-white p-3 rounded-full backdrop-blur-sm transition-colors z-[70]"
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
-                    </button>
-                    
-                    <div className="absolute bottom-6 left-0 right-0 text-center text-white text-sm font-medium z-[70]">
-                        {currentIndex + 1} / {images.length}
-                    </div>
-                </>
-            )}
-        </div>
-    );
-};
 
 const MotorcycleDetailPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -125,7 +31,6 @@ const MotorcycleDetailPage: React.FC = () => {
     const [relatedMotos, setRelatedMotos] = useState<Motorcycle[]>([]);
     const [loading, setLoading] = useState(true);
     const [activeImageIndex, setActiveImageIndex] = useState(0);
-    const [isLightboxOpen, setIsLightboxOpen] = useState(false);
 
     useEffect(() => {
         const fetchMoto = async () => {
@@ -182,16 +87,8 @@ const MotorcycleDetailPage: React.FC = () => {
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
                         {/* Image Gallery */}
                         <div>
-                            <div 
-                                className="aspect-w-4 aspect-h-3 rounded-xl overflow-hidden mb-4 shadow-md cursor-zoom-in relative group"
-                                onClick={() => setIsLightboxOpen(true)}
-                            >
+                            <div className="aspect-w-4 aspect-h-3 rounded-xl overflow-hidden mb-4 shadow-md">
                                 <img src={moto.imagenes[activeImageIndex] || 'https://picsum.photos/800/600'} alt={`${moto.nombre} ${activeImageIndex + 1}`} className="w-full h-full object-cover transition-transform duration-500 ease-in-out transform" />
-                                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all flex items-center justify-center">
-                                    <span className="bg-black/50 text-white px-3 py-1 rounded-full text-sm opacity-0 group-hover:opacity-100 transition-opacity">
-                                        Clic para ampliar
-                                    </span>
-                                </div>
                             </div>
                             <div className="grid grid-cols-5 gap-2">
                                 {moto.imagenes.map((imgUrl, index) => (
@@ -252,14 +149,6 @@ const MotorcycleDetailPage: React.FC = () => {
                     </div>
                 )}
             </div>
-
-            {/* Lightbox Component Instance */}
-            <Lightbox 
-                isOpen={isLightboxOpen} 
-                images={moto.imagenes} 
-                initialIndex={activeImageIndex} 
-                onClose={() => setIsLightboxOpen(false)} 
-            />
         </PublicLayout>
     );
 };

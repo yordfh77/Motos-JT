@@ -1,3 +1,4 @@
+
 export interface Specifications {
     cilindrada?: string;
     motor?: string;
@@ -26,5 +27,14 @@ export interface Category {
     id: string;
     nombre: string;
     imageurl: string;
+    created_at: string;
+}
+
+export interface Testimonial {
+    id: string;
+    nombre: string;
+    comentario: string;
+    puntuacion: number;
+    aprobado: boolean;
     created_at: string;
 }

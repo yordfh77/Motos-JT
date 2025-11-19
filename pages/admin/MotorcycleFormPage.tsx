@@ -32,14 +32,9 @@ const MotorcycleFormPage: React.FC = () => {
         destacada: false,
     });
     const [categories, setCategories] = useState<Category[]>([]);
-    
-    // State for new images being uploaded
     const [imageFiles, setImageFiles] = useState<File[]>([]);
     const [imagePreviews, setImagePreviews] = useState<string[]>([]);
-    
-    // State for images already in DB
     const [existingImages, setExistingImages] = useState<string[]>([]);
-    
     const [loading, setLoading] = useState(true);
     const [formError, setFormError] = useState<string | null>(null);
     const [allSpecs, setAllSpecs] = useState<Record<keyof Specifications, string[]>>({});
@@ -114,54 +109,31 @@ const MotorcycleFormPage: React.FC = () => {
     };
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files.length > 0) {
-            // FIX: Cast result of Array.from to File[] to avoid type error 'unknown not assignable to Blob'
-            const newFiles = Array.from(e.target.files) as File[];
+        if (e.target.files) {
+            const files = Array.from(e.target.files);
             
-            // Calculate total images if these are added
-            const totalImages = existingImages.length + imageFiles.length + newFiles.length;
-
             // Validar que no exceda 5 imágenes
-            if (totalImages > 5) {
-                alert(`Solo se permiten hasta 5 imágenes por moto. Actualmente tienes ${existingImages.length + imageFiles.length} y quieres agregar ${newFiles.length}.`);
+            if (existingImages.length + files.length > 5) {
+                alert(`Solo se permiten hasta 5 imágenes por moto. Tienes ${existingImages.length} imágenes guardadas y has seleccionado ${files.length} nuevas. Por favor, elimina algunas imágenes existentes o selecciona menos.`);
                 e.target.value = ''; // Reset input
                 return;
             }
 
-            // Accumulate files instead of replacing
-            setImageFiles(prev => [...prev, ...newFiles]);
-            
-            // Generate previews for new files
-            const newPreviews = newFiles.map(file => URL.createObjectURL(file));
-            setImagePreviews(prev => [...prev, ...newPreviews]);
-
-            // Reset input value to allow selecting the same file again if needed (after deletion)
-            e.target.value = '';
+            setImageFiles(files);
+            // FIX: The `file` argument was being inferred as `unknown`. Cast to Blob to fix.
+            const previews = files.map(file => URL.createObjectURL(file as Blob));
+            setImagePreviews(previews);
         }
     };
     
-    // Cleanup object URLs to avoid memory leaks
     useEffect(() => {
-        return () => {
-            imagePreviews.forEach(url => URL.revokeObjectURL(url));
-        };
-    }, []); // Clean up on unmount
+        return () => imagePreviews.forEach(url => URL.revokeObjectURL(url));
+    }, [imagePreviews]);
 
     const handleRemoveExistingImage = async (imageUrl: string) => {
-        if (!window.confirm("¿Seguro que quieres eliminar esta imagen guardada?")) return;
-        setExistingImages(prev => prev.filter(img => img !== imageUrl));
-    };
-
-    const handleRemoveNewImage = (index: number) => {
-        // Remove from files array
-        setImageFiles(prev => prev.filter((_, i) => i !== index));
+        if (!window.confirm("¿Seguro que quieres eliminar esta imagen? Esta acción se aplicará al guardar.")) return;
         
-        // Remove from previews array and revoke URL
-        setImagePreviews(prev => {
-            const urlToRemove = prev[index];
-            URL.revokeObjectURL(urlToRemove);
-            return prev.filter((_, i) => i !== index);
-        });
+        setExistingImages(prev => prev.filter(img => img !== imageUrl));
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -174,17 +146,12 @@ const MotorcycleFormPage: React.FC = () => {
         setFormError(null);
 
         try {
-            // 1. Determine which existing images were removed (compared to original DB state) and delete from storage
+            // 1. Determine which existing images were removed and delete them from storage
             const originalImages = isEditing ? (await supabase.from('motos').select('imagenes').eq('id', id).single()).data?.imagenes || [] : [];
             const imagesToDelete = originalImages.filter((img: string) => !existingImages.includes(img));
             
             if (imagesToDelete.length > 0) {
-                const pathsToDelete = imagesToDelete.map((url: string) => {
-                    try {
-                        return new URL(url).pathname.split('/motos/').pop();
-                    } catch (e) { return null; }
-                }).filter(Boolean);
-                
+                const pathsToDelete = imagesToDelete.map((url: string) => new URL(url).pathname.split('/motos/').pop()).filter(Boolean);
                 if (pathsToDelete.length > 0) {
                      await supabase.storage.from('motos').remove(pathsToDelete as string[]);
                 }
@@ -192,9 +159,8 @@ const MotorcycleFormPage: React.FC = () => {
 
             // 2. Upload new images
             const uploadedImageUrls: string[] = [...existingImages];
-            
             for (const file of imageFiles) {
-                const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}-${file.name.replace(/[^a-zA-Z0-9.]/g, '-')}`;
+                const fileName = `${Date.now()}-${file.name.replace(/\s/g, '-')}`;
                 const { data: uploadData, error: uploadError } = await supabase.storage
                     .from('motos')
                     .upload(fileName, file);
@@ -306,46 +272,25 @@ const MotorcycleFormPage: React.FC = () => {
 
                 <FormSection title="Multimedia">
                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Imágenes ({existingImages.length + imageFiles.length}/5)
-                        </label>
-                        
-                        <input 
-                            type="file" 
-                            multiple 
-                            onChange={handleImageChange} 
-                            accept="image/*" 
-                            disabled={existingImages.length + imageFiles.length >= 5}
-                            className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-brand-blue hover:file:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed" 
-                        />
-                        
-                        <p className="text-xs text-gray-500 mt-2">
-                            Puedes subir hasta 5 imágenes. La primera será la principal (Portada).
-                        </p>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Imágenes (Máx. 5)</label>
+                        <input type="file" multiple onChange={handleImageChange} accept="image/*" className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-brand-blue hover:file:bg-blue-100" />
+                        <p className="text-xs text-gray-500 mt-2">Puedes subir hasta 5 imágenes en total. La primera será la principal.</p>
                         
                         {(existingImages.length > 0 || imagePreviews.length > 0) && (
                              <div className="mt-6">
-                                <h4 className="text-md font-semibold text-gray-700 mb-3">Galería de Imágenes</h4>
-                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
-                                    {/* Render Existing Images (Already in Server) */}
-                                    {existingImages.map((imgUrl, index) => (
-                                        <div key={`existing-${imgUrl}`} className="relative group aspect-square">
-                                            <img src={imgUrl} alt={`Existente ${index + 1}`} className="w-full h-full object-cover rounded-lg shadow-sm border border-gray-200" />
-                                            <div className="absolute top-2 left-2 bg-gray-800/70 text-white text-xs px-2 py-1 rounded-full">Guardada</div>
-                                            <button type="button" onClick={() => handleRemoveExistingImage(imgUrl)} className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full p-1 leading-none w-6 h-6 flex items-center justify-center shadow-md transform hover:scale-110 transition-transform">
+                                <h4 className="text-md font-semibold text-gray-700 mb-3">Previsualización de Imágenes</h4>
+                                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-4">
+                                    {existingImages.map((imgUrl) => (
+                                        <div key={imgUrl} className="relative group aspect-square">
+                                            <img src={imgUrl} alt="Imagen existente" className="w-full h-full object-cover rounded-lg shadow-sm" />
+                                            <button type="button" onClick={() => handleRemoveExistingImage(imgUrl)} className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full p-1 leading-none w-6 h-6 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity focus:opacity-100">
                                                 &#x2715;
                                             </button>
                                         </div>
                                     ))}
-                                    
-                                    {/* Render New Images (Previews) */}
                                      {imagePreviews.map((previewUrl, index) => (
-                                        <div key={`new-${index}`} className="relative group aspect-square">
-                                            <img src={previewUrl} alt={`Nueva ${index + 1}`} className="w-full h-full object-cover rounded-lg shadow-sm border-2 border-brand-blue" />
-                                            <div className="absolute top-2 left-2 bg-blue-600/90 text-white text-xs px-2 py-1 rounded-full">Nueva</div>
-                                            <button type="button" onClick={() => handleRemoveNewImage(index)} className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full p-1 leading-none w-6 h-6 flex items-center justify-center shadow-md transform hover:scale-110 transition-transform">
-                                                &#x2715;
-                                            </button>
+                                        <div key={index} className="relative group aspect-square">
+                                            <img src={previewUrl} alt={`Previsualización ${index + 1}`} className="w-full h-full object-cover rounded-lg shadow-sm" />
                                         </div>
                                     ))}
                                 </div>
