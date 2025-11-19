@@ -1,10 +1,32 @@
 
+
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import PublicLayout from '../../components/PublicLayout';
 import { supabase } from '../../services/supabaseClient';
 import { Motorcycle, Category } from '../../types';
 import { Spinner } from '../../components/Spinner';
+
+const StarDisplay: React.FC<{ rating: number }> = ({ rating }) => {
+    return (
+        <div className="flex items-center space-x-0.5">
+            {[1, 2, 3, 4, 5].map((star) => (
+                <svg
+                    key={star}
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill={star <= rating ? "currentColor" : "none"}
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    className={`w-4 h-4 ${star <= rating ? 'text-yellow-400' : 'text-gray-300'}`}
+                >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.545.044.77.77.326 1.163l-4.337 3.869a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.336-3.869a.562.562 0 01.326-1.164l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
+                </svg>
+            ))}
+        </div>
+    );
+};
 
 const MotorcycleCard: React.FC<{ moto: Motorcycle }> = ({ moto }) => (
     <div className={`bg-white rounded-2xl shadow-lg overflow-hidden transform hover:-translate-y-2 transition-transform duration-300 group flex flex-col ${!moto.disponible ? 'opacity-90' : ''}`}>
@@ -21,7 +43,12 @@ const MotorcycleCard: React.FC<{ moto: Motorcycle }> = ({ moto }) => (
             )}
         </div>
         <div className="p-5 flex-grow flex flex-col">
-            <p className="text-sm text-gray-500 mb-1">{moto.categoria}</p>
+            <div className="flex justify-between items-start mb-1">
+                <p className="text-sm text-gray-500">{moto.categoria}</p>
+                {moto.rating !== undefined && moto.rating > 0 && (
+                    <StarDisplay rating={moto.rating} />
+                )}
+            </div>
             <h3 className="text-xl font-bold text-gray-800 truncate flex-grow">{moto.nombre}</h3>
             <p className="text-lg font-semibold text-brand-blue mt-2">{moto.precio.toLocaleString('es-CU')} {moto.moneda}</p>
             <Link to={`/moto/${moto.id}`} className="block w-full text-center bg-gray-800 text-white font-semibold py-2.5 rounded-lg mt-4 hover:bg-brand-blue transition-colors duration-300">

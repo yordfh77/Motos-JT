@@ -19,6 +19,7 @@ export interface Motorcycle {
     imagenes: string[];
     disponible: boolean;
     destacada: boolean;
+    rating?: number; // 1-5 stars
     fechacreacion: string;
     fechaactualizacion?: string;
 }
@@ -27,14 +28,5 @@ export interface Category {
     id: string;
     nombre: string;
     imageurl: string;
-    created_at: string;
-}
-
-export interface Testimonial {
-    id: string;
-    nombre: string;
-    comentario: string;
-    puntuacion: number;
-    aprobado: boolean;
     created_at: string;
 }

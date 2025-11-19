@@ -1,10 +1,33 @@
 
+
+
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import PublicLayout from '../../components/PublicLayout';
 import { supabase } from '../../services/supabaseClient';
-import { Motorcycle, Category, Testimonial } from '../../types';
+import { Motorcycle, Category } from '../../types';
 import { Spinner } from '../../components/Spinner';
+
+const StarDisplay: React.FC<{ rating: number }> = ({ rating }) => {
+    return (
+        <div className="flex items-center space-x-0.5">
+            {[1, 2, 3, 4, 5].map((star) => (
+                <svg
+                    key={star}
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill={star <= rating ? "currentColor" : "none"}
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    className={`w-4 h-4 ${star <= rating ? 'text-yellow-400' : 'text-gray-300'}`}
+                >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.545.044.77.77.326 1.163l-4.337 3.869a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.336-3.869a.562.562 0 01.326-1.164l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
+                </svg>
+            ))}
+            <span className="text-xs text-gray-400 ml-1">({rating})</span>
+        </div>
+    );
+};
 
 const MotorcycleCard: React.FC<{ moto: Motorcycle }> = ({ moto }) => (
     <div className="bg-white rounded-2xl shadow-lg overflow-hidden transform hover:-translate-y-2 transition-transform duration-300 group">
@@ -16,7 +39,12 @@ const MotorcycleCard: React.FC<{ moto: Motorcycle }> = ({ moto }) => (
             )}
         </div>
         <div className="p-5">
-            <p className="text-sm text-gray-500 mb-1">{moto.categoria}</p>
+            <div className="flex justify-between items-start">
+                <p className="text-sm text-gray-500 mb-1">{moto.categoria}</p>
+                {moto.rating !== undefined && moto.rating > 0 && (
+                    <StarDisplay rating={moto.rating} />
+                )}
+            </div>
             <h3 className="text-xl font-bold text-gray-800 truncate">{moto.nombre}</h3>
             <p className="text-lg font-semibold text-brand-blue mt-2">{moto.precio.toLocaleString('es-CU')} {moto.moneda}</p>
             <Link to={`/moto/${moto.id}`} className="block w-full text-center bg-gray-800 text-white font-semibold py-2.5 rounded-lg mt-4 hover:bg-brand-blue transition-colors duration-300">
@@ -26,35 +54,11 @@ const MotorcycleCard: React.FC<{ moto: Motorcycle }> = ({ moto }) => (
     </div>
 );
 
-const StarRating: React.FC<{ rating: number, setRating?: (r: number) => void, editable?: boolean }> = ({ rating, setRating, editable = false }) => {
-    return (
-        <div className="flex">
-            {[1, 2, 3, 4, 5].map((star) => (
-                <svg
-                    key={star}
-                    onClick={() => editable && setRating && setRating(star)}
-                    xmlns="http://www.w3.org/2000/svg"
-                    className={`h-5 w-5 ${editable ? 'cursor-pointer' : ''} ${star <= rating ? 'text-yellow-400' : 'text-gray-300'}`}
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                >
-                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                </svg>
-            ))}
-        </div>
-    );
-};
 
 const HomePage: React.FC = () => {
     const [featuredMotos, setFeaturedMotos] = useState<Motorcycle[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
-    const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
     const [loading, setLoading] = useState(true);
-
-    // Testimonial Form State
-    const [newTestimonial, setNewTestimonial] = useState({ nombre: '', comentario: '', puntuacion: 5 });
-    const [submittingReview, setSubmittingReview] = useState(false);
-    const [reviewMessage, setReviewMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -67,63 +71,28 @@ const HomePage: React.FC = () => {
                 .eq('destacada', true)
                 .limit(4);
 
-            if (motosError) console.error('Error al cargar motos destacadas:', motosError);
-            else setFeaturedMotos(motosData as Motorcycle[]);
+            if (motosError) {
+                console.error('Error al cargar motos destacadas:', motosError);
+            } else {
+                setFeaturedMotos(motosData as Motorcycle[]);
+            }
 
             const { data: categoriesData, error: categoriesError } = await supabase
                 .from('categorias')
                 .select('*')
                 .order('nombre');
             
-            if (categoriesError) console.error('Error al cargar categorías:', categoriesError);
-            else setCategories(categoriesData as Category[]);
-
-            // Fetch approved testimonials
-            const { data: testimonialsData, error: testimonialsError } = await supabase
-                .from('testimonios')
-                .select('*')
-                .eq('aprobado', true)
-                .order('created_at', { ascending: false })
-                .limit(6);
-
-            if (testimonialsError) console.error('Error al cargar testimonios:', testimonialsError);
-            else setTestimonials(testimonialsData as Testimonial[]);
+            if (categoriesError) {
+                console.error('Error al cargar categorías:', categoriesError);
+            } else {
+                setCategories(categoriesData as Category[]);
+            }
 
             setLoading(false);
         };
 
         fetchData();
     }, []);
-
-    const handleSubmitReview = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!newTestimonial.nombre.trim() || !newTestimonial.comentario.trim()) {
-            setReviewMessage({ type: 'error', text: 'Por favor completa todos los campos.' });
-            return;
-        }
-
-        setSubmittingReview(true);
-        setReviewMessage(null);
-
-        try {
-            const { error } = await supabase.from('testimonios').insert([{
-                nombre: newTestimonial.nombre,
-                comentario: newTestimonial.comentario,
-                puntuacion: newTestimonial.puntuacion,
-                aprobado: false // Needs admin approval
-            }]);
-
-            if (error) throw error;
-
-            setReviewMessage({ type: 'success', text: '¡Gracias por tu comentario! Será publicado después de ser revisado.' });
-            setNewTestimonial({ nombre: '', comentario: '', puntuacion: 5 });
-        } catch (err) {
-            console.error(err);
-            setReviewMessage({ type: 'error', text: 'Hubo un error al enviar tu comentario. Inténtalo de nuevo.' });
-        } finally {
-            setSubmittingReview(false);
-        }
-    };
 
     return (
         <PublicLayout>
@@ -177,95 +146,8 @@ const HomePage: React.FC = () => {
                 </div>
             </section>
 
-            {/* Testimonials Section */}
-            <section className="py-16 bg-white">
-                <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-                    <h2 className="text-3xl font-bold text-gray-800 text-center mb-2">Lo que dicen nuestros clientes</h2>
-                    <p className="text-center text-gray-600 mb-10">Tu opinión es lo más importante para nosotros.</p>
-                    
-                    {/* Review Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-                        {testimonials.map(t => (
-                            <div key={t.id} className="bg-gray-50 p-6 rounded-xl shadow-sm border border-gray-100">
-                                <div className="flex justify-between items-start mb-3">
-                                    <div>
-                                        <h4 className="font-bold text-gray-800">{t.nombre}</h4>
-                                        <StarRating rating={t.puntuacion} />
-                                    </div>
-                                    <span className="text-xs text-gray-400">{new Date(t.created_at).toLocaleDateString()}</span>
-                                </div>
-                                <p className="text-gray-600 italic">"{t.comentario}"</p>
-                            </div>
-                        ))}
-                        {testimonials.length === 0 && !loading && (
-                            <div className="col-span-full text-center text-gray-500 py-4">
-                                Sé el primero en dejar un comentario.
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Add Review Form */}
-                    <div className="max-w-2xl mx-auto bg-blue-50 rounded-2xl p-8 shadow-inner">
-                        <h3 className="text-2xl font-bold text-gray-800 text-center mb-6">Déjanos tu Comentario</h3>
-                        <form onSubmit={handleSubmitReview} className="space-y-4">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div>
-                                    <label htmlFor="reviewName" className="block text-sm font-medium text-gray-700 mb-1">Tu Nombre</label>
-                                    <input 
-                                        type="text" 
-                                        id="reviewName" 
-                                        value={newTestimonial.nombre}
-                                        onChange={e => setNewTestimonial({...newTestimonial, nombre: e.target.value})}
-                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-brand-blue focus:border-brand-blue"
-                                        required
-                                        placeholder="Ej: Juan Pérez"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Puntuación</label>
-                                    <div className="flex items-center py-2 bg-white px-4 border border-gray-300 rounded-lg">
-                                        <StarRating 
-                                            rating={newTestimonial.puntuacion} 
-                                            setRating={(r) => setNewTestimonial({...newTestimonial, puntuacion: r})} 
-                                            editable={true} 
-                                        />
-                                        <span className="ml-2 text-sm text-gray-500">({newTestimonial.puntuacion}/5)</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div>
-                                <label htmlFor="reviewComment" className="block text-sm font-medium text-gray-700 mb-1">Tu Experiencia</label>
-                                <textarea 
-                                    id="reviewComment" 
-                                    rows={3} 
-                                    value={newTestimonial.comentario}
-                                    onChange={e => setNewTestimonial({...newTestimonial, comentario: e.target.value})}
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-brand-blue focus:border-brand-blue"
-                                    required
-                                    placeholder="Cuéntanos qué te pareció nuestro servicio..."
-                                ></textarea>
-                            </div>
-                            {reviewMessage && (
-                                <div className={`p-3 rounded-lg text-center text-sm ${reviewMessage.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                    {reviewMessage.text}
-                                </div>
-                            )}
-                            <div className="text-center">
-                                <button 
-                                    type="submit" 
-                                    disabled={submittingReview}
-                                    className="bg-brand-blue text-white font-bold py-2 px-8 rounded-full hover:bg-blue-600 transition-colors disabled:bg-blue-300"
-                                >
-                                    {submittingReview ? 'Enviando...' : 'Enviar Comentario'}
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </section>
-
             {/* How to Buy Section */}
-            <section className="py-16 bg-white border-t">
+            <section className="py-16 bg-white">
                 <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
                     <h2 className="text-3xl font-bold text-gray-800 mb-2">¿Cómo Comprar?</h2>
                     <p className="text-gray-600 mb-8 max-w-3xl mx-auto">

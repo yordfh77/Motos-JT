@@ -1,4 +1,5 @@
 
+
 import React, { useState, ReactNode } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -28,7 +29,6 @@ const AdminLayout: React.FC<{ children: ReactNode }> = ({ children }) => {
                 <NavLink to="/admin" end className={({ isActive }) => isActive ? `${navLinkClasses} ${activeNavLinkClasses}` : navLinkClasses}>Resumen</NavLink>
                 <NavLink to="/admin/motos" className={({ isActive }) => isActive ? `${navLinkClasses} ${activeNavLinkClasses}` : navLinkClasses}>Motos</NavLink>
                 <NavLink to="/admin/categorias" className={({ isActive }) => isActive ? `${navLinkClasses} ${activeNavLinkClasses}` : navLinkClasses}>Categorías</NavLink>
-                <NavLink to="/admin/testimonios" className={({ isActive }) => isActive ? `${navLinkClasses} ${activeNavLinkClasses}` : navLinkClasses}>Testimonios</NavLink>
                 <NavLink to="/admin/cuenta" className={({ isActive }) => isActive ? `${navLinkClasses} ${activeNavLinkClasses}` : navLinkClasses}>Mi Cuenta</NavLink>
             </nav>
         </>
