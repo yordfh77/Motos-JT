@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import PublicLayout from '../../components/PublicLayout';
@@ -6,12 +7,17 @@ import { Motorcycle, Category } from '../../types';
 import { Spinner } from '../../components/Spinner';
 
 const MotorcycleCard: React.FC<{ moto: Motorcycle }> = ({ moto }) => (
-    <div className="bg-white rounded-2xl shadow-lg overflow-hidden transform hover:-translate-y-2 transition-transform duration-300 group flex flex-col">
+    <div className={`bg-white rounded-2xl shadow-lg overflow-hidden transform hover:-translate-y-2 transition-transform duration-300 group flex flex-col ${!moto.disponible ? 'opacity-90' : ''}`}>
         <div className="relative h-64">
             <img src={moto.imagenes[0] || 'https://picsum.photos/400/300'} alt={moto.nombre} className="w-full h-full object-cover" />
             <div className="absolute inset-0 bg-black bg-opacity-20 group-hover:bg-opacity-10 transition-colors duration-300"></div>
             {moto.destacada && (
-                <span className="absolute top-3 right-3 bg-yellow-400 text-gray-800 text-xs font-bold px-3 py-1 rounded-full">Destacada</span>
+                <span className="absolute top-3 right-3 bg-yellow-400 text-gray-800 text-xs font-bold px-3 py-1 rounded-full z-10 shadow-md">Destacada</span>
+            )}
+            {!moto.disponible && (
+                <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-0 backdrop-grayscale">
+                    <span className="bg-red-600 text-white text-sm font-bold px-4 py-2 rounded-full shadow-lg transform -rotate-12 border-2 border-white">AGOTADO</span>
+                </div>
             )}
         </div>
         <div className="p-5 flex-grow flex flex-col">
@@ -34,6 +40,8 @@ const CatalogPage: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('all');
     const [priceRange, setPriceRange] = useState([0, 10000]);
+    const [filterAvailable, setFilterAvailable] = useState('all');
+    const [filterFeatured, setFilterFeatured] = useState('all');
 
     const [searchParams, setSearchParams] = useSearchParams();
 
@@ -51,7 +59,6 @@ const CatalogPage: React.FC = () => {
             const { data: motosData, error: motosError } = await supabase
                 .from('motos')
                 .select('*')
-                .eq('disponible', true)
                 .order('fechacreacion', { ascending: false });
 
             if (motosError) {
@@ -82,9 +89,18 @@ const CatalogPage: React.FC = () => {
             const matchesSearch = moto.nombre.toLowerCase().includes(searchTerm.toLowerCase()) || (moto.descripcion && moto.descripcion.toLowerCase().includes(searchTerm.toLowerCase()));
             const matchesCategory = selectedCategory === 'all' || moto.categoria === selectedCategory;
             const matchesPrice = moto.precio >= priceRange[0] && moto.precio <= priceRange[1];
-            return matchesSearch && matchesCategory && matchesPrice;
+            
+            let matchesAvailable = true;
+            if (filterAvailable === 'yes') matchesAvailable = moto.disponible;
+            if (filterAvailable === 'no') matchesAvailable = !moto.disponible;
+
+            let matchesFeatured = true;
+            if (filterFeatured === 'yes') matchesFeatured = moto.destacada;
+            if (filterFeatured === 'no') matchesFeatured = !moto.destacada;
+
+            return matchesSearch && matchesCategory && matchesPrice && matchesAvailable && matchesFeatured;
         });
-    }, [motos, searchTerm, selectedCategory, priceRange]);
+    }, [motos, searchTerm, selectedCategory, priceRange, filterAvailable, filterFeatured]);
 
     const maxPrice = useMemo(() => Math.max(...motos.map(m => m.precio), 10000), [motos]);
 
@@ -98,8 +114,8 @@ const CatalogPage: React.FC = () => {
 
                 {/* Filters */}
                 <div className="mb-10 p-6 bg-white rounded-2xl shadow-md space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+                        <div className="col-span-1 sm:col-span-2 lg:col-span-1">
                             <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-1">Buscar por nombre</label>
                             <input
                                 type="text"
@@ -123,17 +139,43 @@ const CatalogPage: React.FC = () => {
                             </select>
                         </div>
                         <div>
-                            <label htmlFor="price" className="block text-sm font-medium text-gray-700 mb-1">Rango de Precio: ${priceRange[0]} - ${priceRange[1]}</label>
+                            <label htmlFor="price" className="block text-sm font-medium text-gray-700 mb-1">Precio Máx: ${priceRange[1]}</label>
                             <input
                                 type="range"
                                 id="price"
                                 min="0"
                                 max={maxPrice}
                                 step="100"
-                                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer mt-3"
                                 value={priceRange[1]}
                                 onChange={(e) => setPriceRange([0, Number(e.target.value)])}
                             />
+                        </div>
+                        <div>
+                            <label htmlFor="availability" className="block text-sm font-medium text-gray-700 mb-1">Disponibilidad</label>
+                            <select
+                                id="availability"
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-brand-blue focus:border-brand-blue transition"
+                                value={filterAvailable}
+                                onChange={(e) => setFilterAvailable(e.target.value)}
+                            >
+                                <option value="all">Todas</option>
+                                <option value="yes">Disponible</option>
+                                <option value="no">Agotado</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label htmlFor="featured" className="block text-sm font-medium text-gray-700 mb-1">Destacadas</label>
+                            <select
+                                id="featured"
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-brand-blue focus:border-brand-blue transition"
+                                value={filterFeatured}
+                                onChange={(e) => setFilterFeatured(e.target.value)}
+                            >
+                                <option value="all">Todas</option>
+                                <option value="yes">Sí</option>
+                                <option value="no">No</option>
+                            </select>
                         </div>
                     </div>
                 </div>
