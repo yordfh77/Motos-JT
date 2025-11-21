@@ -1,4 +1,8 @@
 
+
+
+
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../../services/supabaseClient';
@@ -14,6 +18,34 @@ const FormSection: React.FC<{ title: string; children: React.ReactNode }> = ({ t
     </div>
 );
 
+const StarRatingInput: React.FC<{ rating: number; onChange: (rating: number) => void }> = ({ rating, onChange }) => {
+    return (
+        <div className="flex items-center space-x-1">
+            {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                    key={star}
+                    type="button"
+                    onClick={() => onChange(star)}
+                    className="focus:outline-none transform transition-transform hover:scale-110"
+                >
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill={star <= rating ? "currentColor" : "none"}
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        className={`w-8 h-8 ${star <= rating ? 'text-yellow-400' : 'text-gray-300'}`}
+                    >
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.545.044.77.77.326 1.163l-4.337 3.869a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.336-3.869a.562.562 0 01.326-1.164l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
+                    </svg>
+                </button>
+            ))}
+            <span className="ml-2 text-sm text-gray-500">({rating} Estrellas)</span>
+        </div>
+    );
+};
+
+
 const MotorcycleFormPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
@@ -25,15 +57,28 @@ const MotorcycleFormPage: React.FC = () => {
         precio: 0,
         moneda: 'USD',
         descripcion: '',
-        especificaciones: { cilindrada: '', motor: '', bateria: '', frenos: '', velocidad: '' },
+        especificaciones: { 
+            cilindrada: '', 
+            autonomia: '', 
+            velocidad: '', 
+            transmision: '', 
+            cap_combustible: '', 
+            motor: '' 
+        },
         imagenes: [],
         disponible: true,
         destacada: false,
+        rating: 5, // Default rating
     });
     const [categories, setCategories] = useState<Category[]>([]);
+    
+    // State for new images being uploaded
     const [imageFiles, setImageFiles] = useState<File[]>([]);
     const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+    
+    // State for images already in DB
     const [existingImages, setExistingImages] = useState<string[]>([]);
+    
     const [loading, setLoading] = useState(true);
     const [formError, setFormError] = useState<string | null>(null);
     const [allSpecs, setAllSpecs] = useState<Record<keyof Specifications, string[]>>({});
@@ -107,52 +152,59 @@ const MotorcycleFormPage: React.FC = () => {
         setMoto(prev => ({ ...prev, [name]: checked }));
     };
 
+    const handleRatingChange = (newRating: number) => {
+        setMoto(prev => ({ ...prev, rating: newRating }));
+    };
+
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
-            const newFiles = Array.from(e.target.files);
+            // FIX: Cast result of Array.from to File[] to avoid type error
+            const newFiles = Array.from(e.target.files) as File[];
             
-            // Calculate total images: Existing ones + Currently staged ones + New ones trying to add
-            const currentTotal = existingImages.length + imageFiles.length;
-            
-            // Validar que no exceda 5 imágenes en total
-            if (currentTotal + newFiles.length > 5) {
-                const remainingSlots = 5 - currentTotal;
-                alert(`Solo se permiten hasta 5 imágenes por moto. Tienes ${currentTotal} seleccionadas. Solo puedes agregar ${remainingSlots} más.`);
+            // Calculate total images if these are added
+            const totalImages = existingImages.length + imageFiles.length + newFiles.length;
+
+            // Validar que no exceda 5 imágenes
+            if (totalImages > 5) {
+                alert(`Solo se permiten hasta 5 imágenes por moto. Actualmente tienes ${existingImages.length + imageFiles.length} y quieres agregar ${newFiles.length}.`);
                 e.target.value = ''; // Reset input
                 return;
             }
 
-            // Append new files to existing state instead of replacing
+            // Accumulate files instead of replacing
             setImageFiles(prev => [...prev, ...newFiles]);
             
             // Generate previews for new files
             const newPreviews = newFiles.map(file => URL.createObjectURL(file));
             setImagePreviews(prev => [...prev, ...newPreviews]);
 
-            // Reset input to allow selecting the same file again if needed (or adding more batches)
+            // Reset input value to allow selecting the same file again if needed (after deletion)
             e.target.value = '';
         }
     };
     
-    const handleRemoveNewImage = (index: number) => {
-        // Revoke the URL to avoid memory leaks
-        URL.revokeObjectURL(imagePreviews[index]);
-
-        setImageFiles(prev => prev.filter((_, i) => i !== index));
-        setImagePreviews(prev => prev.filter((_, i) => i !== index));
-    };
-
+    // Cleanup object URLs to avoid memory leaks
     useEffect(() => {
-        // Cleanup function when component unmounts to revoke all object URLs
         return () => {
             imagePreviews.forEach(url => URL.revokeObjectURL(url));
         };
-    }, []); // Only on unmount
+    }, []); // Clean up on unmount
 
     const handleRemoveExistingImage = async (imageUrl: string) => {
-        if (!window.confirm("¿Seguro que quieres eliminar esta imagen? Esta acción se aplicará al guardar.")) return;
-        
+        if (!window.confirm("¿Seguro que quieres eliminar esta imagen guardada?")) return;
         setExistingImages(prev => prev.filter(img => img !== imageUrl));
+    };
+
+    const handleRemoveNewImage = (index: number) => {
+        // Remove from files array
+        setImageFiles(prev => prev.filter((_, i) => i !== index));
+        
+        // Remove from previews array and revoke URL
+        setImagePreviews(prev => {
+            const urlToRemove = prev[index];
+            URL.revokeObjectURL(urlToRemove);
+            return prev.filter((_, i) => i !== index);
+        });
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -161,23 +213,21 @@ const MotorcycleFormPage: React.FC = () => {
             setFormError("El nombre y la categoría son obligatorios.");
             return;
         }
-
-        // Validation for positive price
-        if (!moto.precio || Number(moto.precio) <= 0) {
-             setFormError("El precio debe ser un número mayor a 0.");
-             return;
-        }
-
         setLoading(true);
         setFormError(null);
 
         try {
-            // 1. Determine which existing images were removed and delete them from storage
+            // 1. Determine which existing images were removed (compared to original DB state) and delete from storage
             const originalImages = isEditing ? (await supabase.from('motos').select('imagenes').eq('id', id).single()).data?.imagenes || [] : [];
             const imagesToDelete = originalImages.filter((img: string) => !existingImages.includes(img));
             
             if (imagesToDelete.length > 0) {
-                const pathsToDelete = imagesToDelete.map((url: string) => new URL(url).pathname.split('/motos/').pop()).filter(Boolean);
+                const pathsToDelete = imagesToDelete.map((url: string) => {
+                    try {
+                        return new URL(url).pathname.split('/motos/').pop();
+                    } catch (e) { return null; }
+                }).filter(Boolean);
+                
                 if (pathsToDelete.length > 0) {
                      await supabase.storage.from('motos').remove(pathsToDelete as string[]);
                 }
@@ -185,8 +235,9 @@ const MotorcycleFormPage: React.FC = () => {
 
             // 2. Upload new images
             const uploadedImageUrls: string[] = [...existingImages];
+            
             for (const file of imageFiles) {
-                const fileName = `${Date.now()}-${file.name.replace(/\s/g, '-')}`;
+                const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}-${file.name.replace(/[^a-zA-Z0-9.]/g, '-')}`;
                 const { data: uploadData, error: uploadError } = await supabase.storage
                     .from('motos')
                     .upload(fileName, file);
@@ -201,6 +252,7 @@ const MotorcycleFormPage: React.FC = () => {
             const motoData: any = {
                 ...moto,
                 precio: Number(moto.precio),
+                rating: Number(moto.rating || 5),
                 imagenes: uploadedImageUrls,
                 fechaactualizacion: new Date().toISOString(),
             };
@@ -227,12 +279,14 @@ const MotorcycleFormPage: React.FC = () => {
         }
     };
     
+    // Updated fields based on the Flyer image
     const specFields: { name: keyof Specifications; placeholder: string }[] = [
-        { name: 'cilindrada', placeholder: 'Cilindrada (ej: 125cc)' },
-        { name: 'motor', placeholder: 'Tipo de Motor (ej: 4 Tiempos)' },
-        { name: 'bateria', placeholder: 'Batería (ej: 72V 20Ah)' },
-        { name: 'frenos', placeholder: 'Frenos (ej: Disco/Tambor)' },
-        { name: 'velocidad', placeholder: 'Velocidad Máxima (ej: 90 km/h)' },
+        { name: 'cilindrada', placeholder: 'Cilindrada (ej: 150 cc)' },
+        { name: 'autonomia', placeholder: 'Autonomía (ej: 30 km/litro)' },
+        { name: 'velocidad', placeholder: 'Velocidad Max (ej: 92 km/h)' },
+        { name: 'transmision', placeholder: 'Transmisión (ej: 5 velocidades)' },
+        { name: 'cap_combustible', placeholder: 'Cap. Combustible (ej: 17 litros)' },
+        { name: 'motor', placeholder: 'Motor (ej: 4 tiempos enfriado por aire)' },
     ];
 
     if (loading && !isEditing) return <div className="flex justify-center items-center h-full"><Spinner /></div>;
@@ -247,52 +301,33 @@ const MotorcycleFormPage: React.FC = () => {
                 <FormSection title="Información Principal">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
-                            <input type="text" name="nombre" value={moto.nombre} onChange={handleInputChange} className="w-full form-input" required />
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Nombre (Modelo)</label>
+                            <input type="text" name="nombre" value={moto.nombre} onChange={handleInputChange} placeholder="Ej: FT-150-GTS" className="w-full form-input" required />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Categoría (Marca)</label>
                             <select name="categoria" value={moto.categoria} onChange={handleInputChange} className="w-full form-select" required>
                                 <option value="" disabled>-- Selecciona una categoría --</option>
                                 {categories.map(cat => <option key={cat.id} value={cat.nombre}>{cat.nombre}</option>)}
                             </select>
                         </div>
-                        
-                        {/* Price and Currency Combined Input */}
                         <div>
-                            <label htmlFor="price" className="block text-sm font-medium text-gray-700 mb-1">Precio</label>
-                            <div className="relative rounded-md shadow-sm">
-                                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                                    <span className="text-gray-500 sm:text-sm">$</span>
-                                </div>
-                                <input
-                                    type="number"
-                                    name="precio"
-                                    id="price"
-                                    className="block w-full rounded-md border-gray-300 pl-7 pr-20 focus:border-brand-blue focus:ring-brand-blue py-2 border shadow-sm sm:text-sm"
-                                    placeholder="0.00"
-                                    value={moto.precio}
-                                    onChange={handleInputChange}
-                                    min="0.01"
-                                    step="0.01"
-                                    required
-                                />
-                                <div className="absolute inset-y-0 right-0 flex items-center">
-                                    <label htmlFor="currency" className="sr-only">Moneda</label>
-                                    <select
-                                        id="currency"
-                                        name="moneda"
-                                        className="h-full rounded-md border-0 bg-transparent py-0 pl-2 pr-7 text-gray-500 focus:ring-2 focus:ring-inset focus:ring-brand-blue sm:text-sm font-bold"
-                                        value={moto.moneda}
-                                        onChange={handleInputChange}
-                                    >
-                                        <option value="USD">USD</option>
-                                        <option value="MLC">MLC</option>
-                                        <option value="CUP">CUP</option>
-                                    </select>
-                                </div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Precio</label>
+                            <input type="number" name="precio" value={moto.precio} onChange={handleInputChange} min="0" className="w-full form-input" required />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Moneda</label>
+                            <select name="moneda" value={moto.moneda} onChange={handleInputChange} className="w-full form-select">
+                                <option value="USD">USD</option>
+                                <option value="MLC">MLC</option>
+                            </select>
+                        </div>
+                         <div className="col-span-1 md:col-span-2">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Calificación de Clientes</label>
+                            <div className="p-2 border border-gray-200 rounded-lg bg-gray-50 w-fit">
+                                <StarRatingInput rating={moto.rating || 5} onChange={handleRatingChange} />
                             </div>
-                            <p className="mt-1 text-xs text-gray-500">El valor debe ser positivo.</p>
+                            <p className="text-xs text-gray-500 mt-1">Asigna una calificación basada en la satisfacción del cliente (1-5).</p>
                         </div>
                     </div>
                     <div>
@@ -301,7 +336,7 @@ const MotorcycleFormPage: React.FC = () => {
                     </div>
                 </FormSection>
 
-                <FormSection title="Especificaciones Técnicas">
+                <FormSection title="Ficha Técnica">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {specFields.map(field => (
                              <div key={field.name}>
@@ -324,38 +359,44 @@ const MotorcycleFormPage: React.FC = () => {
 
                 <FormSection title="Multimedia">
                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Imágenes (Máx. 5)</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Imágenes ({existingImages.length + imageFiles.length}/5)
+                        </label>
+                        
                         <input 
                             type="file" 
                             multiple 
                             onChange={handleImageChange} 
                             accept="image/*" 
-                            className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-brand-blue hover:file:bg-blue-100" 
+                            disabled={existingImages.length + imageFiles.length >= 5}
+                            className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-brand-blue hover:file:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed" 
                         />
+                        
                         <p className="text-xs text-gray-500 mt-2">
-                            Seleccionadas: {existingImages.length + imageFiles.length} / 5. 
-                            Puedes subir hasta 5 imágenes en total.
+                            Puedes subir hasta 5 imágenes. La primera será la principal (Portada).
                         </p>
                         
                         {(existingImages.length > 0 || imagePreviews.length > 0) && (
                              <div className="mt-6">
-                                <h4 className="text-md font-semibold text-gray-700 mb-3">Previsualización de Imágenes</h4>
-                                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-4">
-                                    {/* Existing Images (Server) */}
-                                    {existingImages.map((imgUrl) => (
-                                        <div key={imgUrl} className="relative group aspect-square">
-                                            <img src={imgUrl} alt="Imagen existente" className="w-full h-full object-cover rounded-lg shadow-sm" />
-                                            <button type="button" onClick={() => handleRemoveExistingImage(imgUrl)} className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full p-1 leading-none w-6 h-6 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity focus:opacity-100 hover:bg-red-700">
+                                <h4 className="text-md font-semibold text-gray-700 mb-3">Galería de Imágenes</h4>
+                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+                                    {/* Render Existing Images (Already in Server) */}
+                                    {existingImages.map((imgUrl, index) => (
+                                        <div key={`existing-${imgUrl}`} className="relative group aspect-square">
+                                            <img src={imgUrl} alt={`Existente ${index + 1}`} className="w-full h-full object-cover rounded-lg shadow-sm border border-gray-200" />
+                                            <div className="absolute top-2 left-2 bg-gray-800/70 text-white text-xs px-2 py-1 rounded-full">Guardada</div>
+                                            <button type="button" onClick={() => handleRemoveExistingImage(imgUrl)} className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full p-1 leading-none w-6 h-6 flex items-center justify-center shadow-md transform hover:scale-110 transition-transform">
                                                 &#x2715;
                                             </button>
                                         </div>
                                     ))}
                                     
-                                    {/* New Images (Local Preview) */}
+                                    {/* Render New Images (Previews) */}
                                      {imagePreviews.map((previewUrl, index) => (
-                                        <div key={previewUrl} className="relative group aspect-square">
-                                            <img src={previewUrl} alt={`Previsualización ${index + 1}`} className="w-full h-full object-cover rounded-lg shadow-sm border-2 border-brand-blue" />
-                                            <button type="button" onClick={() => handleRemoveNewImage(index)} className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full p-1 leading-none w-6 h-6 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity focus:opacity-100 hover:bg-red-700">
+                                        <div key={`new-${index}`} className="relative group aspect-square">
+                                            <img src={previewUrl} alt={`Nueva ${index + 1}`} className="w-full h-full object-cover rounded-lg shadow-sm border-2 border-brand-blue" />
+                                            <div className="absolute top-2 left-2 bg-blue-600/90 text-white text-xs px-2 py-1 rounded-full">Nueva</div>
+                                            <button type="button" onClick={() => handleRemoveNewImage(index)} className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full p-1 leading-none w-6 h-6 flex items-center justify-center shadow-md transform hover:scale-110 transition-transform">
                                                 &#x2715;
                                             </button>
                                         </div>

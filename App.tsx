@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import { HashRouter, Routes, Route, Outlet } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
@@ -12,7 +13,6 @@ import MotorcyclesListPage from './pages/admin/MotorcyclesListPage';
 import MotorcycleFormPage from './pages/admin/MotorcycleFormPage';
 import CategoriesListPage from './pages/admin/CategoriesListPage';
 import AccountPage from './pages/admin/AccountPage';
-import TestimonialsListPage from './pages/admin/TestimonialsListPage';
 import ProtectedRoute from './components/ProtectedRoute';
 
 // FIX: Defined ProtectedAdminLayout outside of the App component.
@@ -47,7 +47,6 @@ function App() {
                         <Route path="motos/nueva" element={<MotorcycleFormPage />} />
                         <Route path="motos/editar/:id" element={<MotorcycleFormPage />} />
                         <Route path="categorias" element={<CategoriesListPage />} />
-                        <Route path="testimonios" element={<TestimonialsListPage />} />
                         <Route path="cuenta" element={<AccountPage />} />
                     </Route>
                 </Routes>

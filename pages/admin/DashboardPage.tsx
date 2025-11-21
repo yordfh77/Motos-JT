@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../../services/supabaseClient';
@@ -10,12 +9,11 @@ interface Stats {
     activeMotos: number;
     featuredMotos: number;
     categories: number;
-    pendingTestimonials: number;
 }
 
-const StatCard: React.FC<{ title: string; value: number | string, icon: React.ReactNode, colorClass?: string }> = ({ title, value, icon, colorClass = "bg-brand-blue/10 text-brand-blue" }) => (
+const StatCard: React.FC<{ title: string; value: number | string, icon: React.ReactNode }> = ({ title, value, icon }) => (
     <div className="bg-white p-6 rounded-xl shadow-md flex items-center space-x-4 transition-transform duration-300 transform hover:-translate-y-1 hover:shadow-lg">
-        <div className={`${colorClass} rounded-full p-3`}>
+        <div className="bg-brand-blue/10 text-brand-blue rounded-full p-3">
             {icon}
         </div>
         <div>
@@ -37,14 +35,12 @@ const DashboardPage: React.FC = () => {
             setError(null);
             try {
                 const motosPromise = supabase.from('motos').select('*');
-                const categoriesPromise = supabase.from('categorias').select('id', { count: 'exact', head: true });
-                const testimonialsPromise = supabase.from('testimonios').select('id', { count: 'exact', head: true }).eq('aprobado', false);
+                const categoriesPromise = supabase.from('categorias').select('id', { count: 'exact' });
 
-                const [motosResult, categoriesResult, testimonialsResult] = await Promise.all([motosPromise, categoriesPromise, testimonialsPromise]);
+                const [motosResult, categoriesResult] = await Promise.all([motosPromise, categoriesPromise]);
 
                 if (motosResult.error) throw motosResult.error;
                 if (categoriesResult.error) throw categoriesResult.error;
-                if (testimonialsResult.error) throw testimonialsResult.error;
 
                 const motos = motosResult.data;
                 const activeMotos = motos.filter(m => m.disponible).length;
@@ -55,7 +51,6 @@ const DashboardPage: React.FC = () => {
                     activeMotos,
                     featuredMotos,
                     categories: categoriesResult.count ?? 0,
-                    pendingTestimonials: testimonialsResult.count ?? 0,
                 });
 
                 setRecentMotos(
@@ -89,7 +84,8 @@ const DashboardPage: React.FC = () => {
                     <div className="mt-4">
                         <p className="font-semibold">Posibles Soluciones:</p>
                         <ul className="list-disc list-inside text-sm">
-                            <li>Asegúrate de haber ejecutado el SQL para crear las tablas <strong>"motos"</strong>, <strong>"categorias"</strong> y <strong>"testimonios"</strong>.</li>
+                            <li>Asegúrate de haber creado las tablas <strong>"motos"</strong> y <strong>"categorias"</strong> en tu base de datos de Supabase.</li>
+                            <li>Si tienes activada la Seguridad a Nivel de Fila (RLS), verifica que exista una política que permita la <strong>lectura (SELECT)</strong> para usuarios autenticados.</li>
                         </ul>
                     </div>
                 </div>
@@ -101,7 +97,7 @@ const DashboardPage: React.FC = () => {
         <div>
             <h1 className="text-3xl font-bold text-gray-800 mb-6">Resumen del Catálogo</h1>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                 <Link to="/admin/motos">
                     <StatCard title="Total de Motos" value={stats?.totalMotos ?? 0} icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6V4m0 16v-2m0-8v-2m0 16V4m6 8h2m-16 0h2m14 0h-2m-8 0h-2m14 0h-2m-2-8l-2-2m0 12l2-2m-12 0l-2 2m0-12l2 2m12 0l-2 2" /></svg>} />
                 </Link>
@@ -113,14 +109,6 @@ const DashboardPage: React.FC = () => {
                 </Link>
                 <Link to="/admin/categorias">
                     <StatCard title="Categorías" value={stats?.categories ?? 0} icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2H5a2 2 0 00-2 2v2" /></svg>} />
-                </Link>
-                <Link to="/admin/testimonios">
-                    <StatCard 
-                        title="Comentarios Pendientes" 
-                        value={stats?.pendingTestimonials ?? 0} 
-                        colorClass={stats?.pendingTestimonials && stats.pendingTestimonials > 0 ? "bg-orange-100 text-orange-600" : "bg-green-100 text-green-600"}
-                        icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" /></svg>} 
-                    />
                 </Link>
             </div>
 
