@@ -72,7 +72,8 @@ const MotorcycleFormPage: React.FC = () => {
             velocidad: '', 
             transmision: '', 
             cap_combustible: '', 
-            motor: '' 
+            motor: '',
+            frenos: '' 
         },
         imagenes: [],
         disponible: true,
@@ -300,6 +301,7 @@ const MotorcycleFormPage: React.FC = () => {
         { name: 'transmision', placeholder: 'Transmisión (ej: 5 velocidades)' },
         { name: 'cap_combustible', placeholder: 'Cap. Combustible (ej: 17 litros)' },
         { name: 'motor', placeholder: 'Motor (ej: 4 tiempos enfriado por aire)' },
+        { name: 'frenos', placeholder: 'Frenos (ej: Disco / Tambor)' },
     ];
 
     if (loading && !isEditing) return <div className="flex justify-center items-center h-full"><Spinner /></div>;

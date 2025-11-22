@@ -158,6 +158,7 @@ const MotorcycleDetailPage: React.FC = () => {
         { key: 'transmision', label: 'Transmisión' },
         { key: 'cap_combustible', label: 'Cap Combustible' },
         { key: 'motor', label: 'Motor' },
+        { key: 'frenos', label: 'Frenos' },
     ];
 
     return (
