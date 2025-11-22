@@ -287,14 +287,14 @@ const MotorcycleDetailPage: React.FC = () => {
                             </div>
                         </div>
 
-                        {/* Specs Grid - Right Aligned & Styled */}
+                        {/* Specs Grid - Left Aligned & Styled */}
                         <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-1 gap-6">
                              {fichaTecnicaOrder.map(({ key, label }) => {
                                 const value = moto.especificaciones?.[key];
                                 if (!value) return null;
                                 return (
-                                    <div key={key} className="flex flex-row justify-end items-baseline border-b border-[#1a5c50] pb-2">
-                                        <span className="text-[#00bfa5] font-bold italic uppercase text-xl md:text-2xl mr-4 text-right flex-1">
+                                    <div key={key} className="flex flex-col sm:flex-row sm:items-baseline border-b border-[#1a5c50] pb-2 text-left">
+                                        <span className="text-[#00bfa5] font-bold italic uppercase text-xl md:text-2xl mr-4 min-w-[200px]">
                                             {label}:
                                         </span>
                                         <span className="text-2xl md:text-3xl font-black italic text-white tracking-wide">
@@ -308,8 +308,8 @@ const MotorcycleDetailPage: React.FC = () => {
                             {moto.especificaciones && Object.entries(moto.especificaciones)
                                 .filter(([key]) => !fichaTecnicaOrder.map(f => f.key).includes(key))
                                 .map(([key, value]) => value && (
-                                    <div key={key} className="flex flex-row justify-end items-baseline border-b border-[#1a5c50] pb-2">
-                                        <span className="text-[#00bfa5] font-bold italic uppercase text-xl md:text-2xl mr-4 text-right flex-1">
+                                    <div key={key} className="flex flex-col sm:flex-row sm:items-baseline border-b border-[#1a5c50] pb-2 text-left">
+                                        <span className="text-[#00bfa5] font-bold italic uppercase text-xl md:text-2xl mr-4 min-w-[200px]">
                                             {key}:
                                         </span>
                                         <span className="text-2xl md:text-3xl font-black italic text-white tracking-wide">
