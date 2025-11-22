@@ -1,13 +1,22 @@
 
-
-
-
-
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../../services/supabaseClient';
 import { Motorcycle, Specifications, Category } from '../../types';
 import { Spinner } from '../../components/Spinner';
+
+// Interface for new images to ensure unique identification
+interface PendingImage {
+    id: string;
+    file: File;
+    preview: string;
+}
+
+// Interface for existing images to ensure unique identification and reliable deletion
+interface ExistingImage {
+    id: string;
+    url: string;
+}
 
 const FormSection: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
     <div className="bg-white p-6 rounded-xl shadow-md">
@@ -72,12 +81,11 @@ const MotorcycleFormPage: React.FC = () => {
     });
     const [categories, setCategories] = useState<Category[]>([]);
     
-    // State for new images being uploaded
-    const [imageFiles, setImageFiles] = useState<File[]>([]);
-    const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+    // State for new images being uploaded using Unique IDs
+    const [newImages, setNewImages] = useState<PendingImage[]>([]);
     
-    // State for images already in DB
-    const [existingImages, setExistingImages] = useState<string[]>([]);
+    // State for images already in DB - Using Object structure for robust deletion
+    const [existingImages, setExistingImages] = useState<ExistingImage[]>([]);
     
     const [loading, setLoading] = useState(true);
     const [formError, setFormError] = useState<string | null>(null);
@@ -124,7 +132,12 @@ const MotorcycleFormPage: React.FC = () => {
                 navigate('/admin/motos');
             } else {
                 setMoto(data);
-                setExistingImages(data.imagenes || []);
+                // Map simple URL strings to objects with unique IDs for reliable state management
+                const loadedImages = (data.imagenes || []).map((url: string) => ({
+                    id: `existing-${Math.random().toString(36).substring(2, 9)}-${Date.now()}`,
+                    url: url
+                }));
+                setExistingImages(loadedImages);
             }
         }
         setLoading(false);
@@ -133,6 +146,13 @@ const MotorcycleFormPage: React.FC = () => {
     useEffect(() => {
         fetchFormData();
     }, [fetchFormData]);
+
+    // Cleanup object URLs to avoid memory leaks
+    useEffect(() => {
+        return () => {
+            newImages.forEach(img => URL.revokeObjectURL(img.preview));
+        };
+    }, []);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
@@ -158,53 +178,42 @@ const MotorcycleFormPage: React.FC = () => {
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
-            // FIX: Cast result of Array.from to File[] to avoid type error
-            const newFiles = Array.from(e.target.files) as File[];
-            
-            // Calculate total images if these are added
-            const totalImages = existingImages.length + imageFiles.length + newFiles.length;
+            const files = Array.from(e.target.files) as File[];
+            const totalImages = existingImages.length + newImages.length + files.length;
 
-            // Validar que no exceda 5 imágenes
             if (totalImages > 5) {
-                alert(`Solo se permiten hasta 5 imágenes por moto. Actualmente tienes ${existingImages.length + imageFiles.length} y quieres agregar ${newFiles.length}.`);
-                e.target.value = ''; // Reset input
+                alert(`Solo se permiten hasta 5 imágenes por moto. Actualmente tienes ${existingImages.length + newImages.length} y quieres agregar ${files.length}.`);
+                e.target.value = ''; 
                 return;
             }
 
-            // Accumulate files instead of replacing
-            setImageFiles(prev => [...prev, ...newFiles]);
-            
-            // Generate previews for new files
-            const newPreviews = newFiles.map(file => URL.createObjectURL(file));
-            setImagePreviews(prev => [...prev, ...newPreviews]);
+            const newPendingImages: PendingImage[] = files.map(file => ({
+                id: `new-${Math.random().toString(36).substring(2, 9)}-${Date.now()}`,
+                file,
+                preview: URL.createObjectURL(file)
+            }));
 
-            // Reset input value to allow selecting the same file again if needed (after deletion)
+            setNewImages(prev => [...prev, ...newPendingImages]);
             e.target.value = '';
         }
     };
-    
-    // Cleanup object URLs to avoid memory leaks
-    useEffect(() => {
-        return () => {
-            imagePreviews.forEach(url => URL.revokeObjectURL(url));
-        };
-    }, []); // Clean up on unmount
 
-    const handleRemoveExistingImage = async (imageUrl: string) => {
-        if (!window.confirm("¿Seguro que quieres eliminar esta imagen guardada?")) return;
-        setExistingImages(prev => prev.filter(img => img !== imageUrl));
+    const handleRemoveExistingImage = (id: string) => {
+        if (window.confirm("¿Estás seguro de que deseas eliminar esta imagen guardada?")) {
+            setExistingImages(prev => prev.filter(img => img.id !== id));
+        }
     };
 
-    const handleRemoveNewImage = (index: number) => {
-        // Remove from files array
-        setImageFiles(prev => prev.filter((_, i) => i !== index));
-        
-        // Remove from previews array and revoke URL
-        setImagePreviews(prev => {
-            const urlToRemove = prev[index];
-            URL.revokeObjectURL(urlToRemove);
-            return prev.filter((_, i) => i !== index);
-        });
+    const handleRemoveNewImage = (id: string) => {
+        if (window.confirm("¿Estás seguro de que deseas eliminar esta imagen nueva?")) {
+            setNewImages(prev => {
+                const imageToRemove = prev.find(img => img.id === id);
+                if (imageToRemove) {
+                    URL.revokeObjectURL(imageToRemove.preview);
+                }
+                return prev.filter(img => img.id !== id);
+            });
+        }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -217,9 +226,13 @@ const MotorcycleFormPage: React.FC = () => {
         setFormError(null);
 
         try {
-            // 1. Determine which existing images were removed (compared to original DB state) and delete from storage
+            // 1. Determine deletions by comparing original DB state with current 'existingImages' state
             const originalImages = isEditing ? (await supabase.from('motos').select('imagenes').eq('id', id).single()).data?.imagenes || [] : [];
-            const imagesToDelete = originalImages.filter((img: string) => !existingImages.includes(img));
+            
+            // Extract simple URLs from current state objects
+            const currentExistingUrls = existingImages.map(img => img.url);
+            
+            const imagesToDelete = originalImages.filter((img: string) => !currentExistingUrls.includes(img));
             
             if (imagesToDelete.length > 0) {
                 const pathsToDelete = imagesToDelete.map((url: string) => {
@@ -234,9 +247,10 @@ const MotorcycleFormPage: React.FC = () => {
             }
 
             // 2. Upload new images
-            const uploadedImageUrls: string[] = [...existingImages];
+            const finalImageUrls: string[] = [...currentExistingUrls];
             
-            for (const file of imageFiles) {
+            for (const img of newImages) {
+                const file = img.file;
                 const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}-${file.name.replace(/[^a-zA-Z0-9.]/g, '-')}`;
                 const { data: uploadData, error: uploadError } = await supabase.storage
                     .from('motos')
@@ -245,7 +259,7 @@ const MotorcycleFormPage: React.FC = () => {
                 if (uploadError) throw new Error(`Error al subir imagen: ${uploadError.message}`);
                 
                 const { data: urlData } = supabase.storage.from('motos').getPublicUrl(uploadData.path);
-                uploadedImageUrls.push(urlData.publicUrl);
+                finalImageUrls.push(urlData.publicUrl);
             }
 
             // 3. Prepare data for upsert
@@ -253,17 +267,17 @@ const MotorcycleFormPage: React.FC = () => {
                 ...moto,
                 precio: Number(moto.precio),
                 rating: Number(moto.rating || 5),
-                imagenes: uploadedImageUrls,
+                imagenes: finalImageUrls,
                 fechaactualizacion: new Date().toISOString(),
             };
             
             if (!isEditing) {
-                delete motoData.id; // Ensure no ID is passed on create
+                delete motoData.id;
             } else {
                  motoData.id = id;
             }
 
-            // 4. Upsert motorcycle data
+            // 4. Upsert
             const { error } = await supabase.from('motos').upsert(motoData).select();
 
             if (error) throw error;
@@ -279,7 +293,6 @@ const MotorcycleFormPage: React.FC = () => {
         }
     };
     
-    // Updated fields based on the Flyer image
     const specFields: { name: keyof Specifications; placeholder: string }[] = [
         { name: 'cilindrada', placeholder: 'Cilindrada (ej: 150 cc)' },
         { name: 'autonomia', placeholder: 'Autonomía (ej: 30 km/litro)' },
@@ -360,7 +373,7 @@ const MotorcycleFormPage: React.FC = () => {
                 <FormSection title="Multimedia">
                      <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Imágenes ({existingImages.length + imageFiles.length}/5)
+                            Imágenes ({existingImages.length + newImages.length}/5)
                         </label>
                         
                         <input 
@@ -368,7 +381,7 @@ const MotorcycleFormPage: React.FC = () => {
                             multiple 
                             onChange={handleImageChange} 
                             accept="image/*" 
-                            disabled={existingImages.length + imageFiles.length >= 5}
+                            disabled={existingImages.length + newImages.length >= 5}
                             className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-brand-blue hover:file:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed" 
                         />
                         
@@ -376,28 +389,50 @@ const MotorcycleFormPage: React.FC = () => {
                             Puedes subir hasta 5 imágenes. La primera será la principal (Portada).
                         </p>
                         
-                        {(existingImages.length > 0 || imagePreviews.length > 0) && (
+                        {(existingImages.length > 0 || newImages.length > 0) && (
                              <div className="mt-6">
                                 <h4 className="text-md font-semibold text-gray-700 mb-3">Galería de Imágenes</h4>
                                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
-                                    {/* Render Existing Images (Already in Server) */}
-                                    {existingImages.map((imgUrl, index) => (
-                                        <div key={`existing-${imgUrl}`} className="relative group aspect-square">
-                                            <img src={imgUrl} alt={`Existente ${index + 1}`} className="w-full h-full object-cover rounded-lg shadow-sm border border-gray-200" />
-                                            <div className="absolute top-2 left-2 bg-gray-800/70 text-white text-xs px-2 py-1 rounded-full">Guardada</div>
-                                            <button type="button" onClick={() => handleRemoveExistingImage(imgUrl)} className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full p-1 leading-none w-6 h-6 flex items-center justify-center shadow-md transform hover:scale-110 transition-transform">
-                                                &#x2715;
+                                    {/* Render Existing Images (Refactored with Objects and IDs) */}
+                                    {existingImages.map((imgObj) => (
+                                        <div key={imgObj.id} className="relative group aspect-square rounded-lg overflow-hidden border border-gray-200">
+                                            <img src={imgObj.url} alt="Existente" className="w-full h-full object-cover" />
+                                            <div className="absolute top-2 left-2 bg-gray-800/70 text-white text-xs px-2 py-1 rounded-full backdrop-blur-sm pointer-events-none">Guardada</div>
+                                            <button 
+                                                type="button" 
+                                                onClick={(e) => { 
+                                                    e.stopPropagation(); 
+                                                    e.preventDefault(); 
+                                                    handleRemoveExistingImage(imgObj.id); 
+                                                }} 
+                                                className="absolute top-2 right-2 bg-red-600 text-white rounded-full p-2 hover:bg-red-700 shadow-lg z-50 cursor-pointer transition-transform hover:scale-110 flex items-center justify-center"
+                                                title="Eliminar imagen"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
                                             </button>
                                         </div>
                                     ))}
                                     
                                     {/* Render New Images (Previews) */}
-                                     {imagePreviews.map((previewUrl, index) => (
-                                        <div key={`new-${index}`} className="relative group aspect-square">
-                                            <img src={previewUrl} alt={`Nueva ${index + 1}`} className="w-full h-full object-cover rounded-lg shadow-sm border-2 border-brand-blue" />
-                                            <div className="absolute top-2 left-2 bg-blue-600/90 text-white text-xs px-2 py-1 rounded-full">Nueva</div>
-                                            <button type="button" onClick={() => handleRemoveNewImage(index)} className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full p-1 leading-none w-6 h-6 flex items-center justify-center shadow-md transform hover:scale-110 transition-transform">
-                                                &#x2715;
+                                     {newImages.map((img) => (
+                                        <div key={img.id} className="relative group aspect-square rounded-lg overflow-hidden border-2 border-brand-blue">
+                                            <img src={img.preview} alt="Nueva" className="w-full h-full object-cover" />
+                                            <div className="absolute top-2 left-2 bg-blue-600/90 text-white text-xs px-2 py-1 rounded-full backdrop-blur-sm pointer-events-none">Nueva</div>
+                                            <button 
+                                                type="button" 
+                                                onClick={(e) => { 
+                                                    e.stopPropagation(); 
+                                                    e.preventDefault(); 
+                                                    handleRemoveNewImage(img.id); 
+                                                }} 
+                                                className="absolute top-2 right-2 bg-red-600 text-white rounded-full p-2 hover:bg-red-700 shadow-lg z-50 cursor-pointer transition-transform hover:scale-110 flex items-center justify-center"
+                                                title="Eliminar imagen"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
                                             </button>
                                         </div>
                                     ))}
@@ -410,11 +445,11 @@ const MotorcycleFormPage: React.FC = () => {
                  <FormSection title="Publicación">
                     <div className="flex items-center space-x-8">
                         <div className="flex items-center">
-                            <input type="checkbox" id="disponible" name="disponible" checked={moto.disponible} onChange={handleCheckboxChange} className="h-4 w-4 text-brand-blue focus:ring-brand-blue border-gray-300 rounded" />
+                            <input type="checkbox" id="disponible" name="disponible" checked={moto.disponible || false} onChange={handleCheckboxChange} className="h-4 w-4 text-brand-blue focus:ring-brand-blue border-gray-300 rounded" />
                             <label htmlFor="disponible" className="ml-2 block text-sm text-gray-900">Marcar como Disponible</label>
                         </div>
                         <div className="flex items-center">
-                            <input type="checkbox" id="destacada" name="destacada" checked={moto.destacada} onChange={handleCheckboxChange} className="h-4 w-4 text-brand-blue focus:ring-brand-blue border-gray-300 rounded" />
+                            <input type="checkbox" id="destacada" name="destacada" checked={moto.destacada || false} onChange={handleCheckboxChange} className="h-4 w-4 text-brand-blue focus:ring-brand-blue border-gray-300 rounded" />
                             <label htmlFor="destacada" className="ml-2 block text-sm text-gray-900">Marcar como Destacada</label>
                         </div>
                     </div>

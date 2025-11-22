@@ -42,8 +42,8 @@ const LoginPage: React.FC = () => {
     return (
         <div className="min-h-screen bg-gray-100 flex flex-col justify-center items-center p-4">
              <div className="text-center mb-8">
-                <h1 className="text-3xl font-bold text-gray-800">
-                    Motos <span className="text-brand-blue">JT</span>
+                <h1 className="text-3xl font-black italic uppercase tracking-tight text-gray-800">
+                    Ayocet <span className="text-[#00bfa5] pl-1">/ JT</span>
                 </h1>
                 <p className="text-gray-600">Panel de Administración</p>
             </div>
@@ -60,7 +60,7 @@ const LoginPage: React.FC = () => {
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             required
-                            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-brand-blue focus:border-brand-blue sm:text-sm"
+                            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-[#00bfa5] focus:border-[#00bfa5] sm:text-sm"
                             placeholder="tu@email.com"
                         />
                     </div>
@@ -74,7 +74,7 @@ const LoginPage: React.FC = () => {
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             required
-                            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-brand-blue focus:border-brand-blue sm:text-sm"
+                            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-[#00bfa5] focus:border-[#00bfa5] sm:text-sm"
                             placeholder="••••••••"
                         />
                     </div>
@@ -83,7 +83,7 @@ const LoginPage: React.FC = () => {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-brand-blue hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-blue disabled:bg-blue-300 transition-colors"
+                            className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#00bfa5] hover:bg-[#00a08a] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#00bfa5] disabled:bg-gray-300 transition-colors"
                         >
                             {loading ? 'Iniciando...' : 'Iniciar Sesión'}
                         </button>

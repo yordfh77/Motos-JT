@@ -5,7 +5,7 @@ import PublicLayout from '../../components/PublicLayout';
 import { supabase } from '../../services/supabaseClient';
 import { Motorcycle } from '../../types';
 import { Spinner } from '../../components/Spinner';
-import { CONTACT_WHATSAPP_LINK, CONTACT_TELEGRAM_LINK, CONTACT_PHONE_NUMBER } from '../../constants';
+import { CONTACT_WHATSAPP_LINK, CONTACT_PHONE_NUMBER } from '../../constants';
 
 // Full Screen Image Viewer Component
 const Lightbox: React.FC<{ 
@@ -264,12 +264,12 @@ const MotorcycleDetailPage: React.FC = () => {
                 {/* --- WAVE SEPARATOR --- */}
                 <div className="relative -mb-1 mt-12 z-20">
                      <svg className="w-full h-16 md:h-32" viewBox="0 0 1440 320" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-                        <path fill="#00332a" fillOpacity="1" d="M0,160L60,160C120,160,240,160,360,144C480,128,600,96,720,112C840,128,960,192,1080,202.7C1200,213,1320,171,1380,149.3L1440,128L1440,320L1380,320C1320,320,1200,320,1080,320C960,320,840,320,720,320C600,320,480,320,360,320C240,320,120,320,60,320L0,320Z"></path>
+                        <path fill="#002d40" fillOpacity="1" d="M0,160L60,160C120,160,240,160,360,144C480,128,600,96,720,112C840,128,960,192,1080,202.7C1200,213,1320,171,1380,149.3L1440,128L1440,320L1380,320C1320,320,1200,320,1080,320C960,320,840,320,720,320C600,320,480,320,360,320C240,320,120,320,60,320L0,320Z"></path>
                     </svg>
                 </div>
 
                 {/* --- DARK GREEN SECTION (FICHA TECNICA) --- */}
-                <div className="bg-[#00332a] pt-4 pb-12 text-white relative z-20">
+                <div className="bg-[#002d40] pt-4 pb-12 text-white relative z-20">
                     <div className="container mx-auto px-4">
                         
                         {/* Ficha Técnica Title with Chain */}
@@ -319,14 +319,6 @@ const MotorcycleDetailPage: React.FC = () => {
                             }
                         </div>
                         
-                        {/* Bottom Paint Splatter Effect (Optional visual) */}
-                        <div className="absolute bottom-0 left-0 w-full h-full opacity-5 pointer-events-none overflow-hidden">
-                             {/* Just some noise/grunge simulation via inline SVG or similar */}
-                             <svg className="absolute -bottom-20 -left-20 w-96 h-96 text-black" viewBox="0 0 200 200" fill="currentColor">
-                                 <path d="M45,-76.3C58.9,-69.3,71.4,-59.1,79.8,-46.8C88.2,-34.5,92.6,-20.1,89.9,-6.8C87.3,6.5,77.6,18.8,68.6,30.2C59.6,41.6,51.3,52.1,40.9,60.3C30.5,68.5,18,74.4,4.8,76.1C-8.4,77.8,-21.8,75.3,-34.6,69.1C-47.4,62.9,-59.6,53,-68.6,41C-77.6,29,-83.4,14.9,-83.1,0.9C-82.8,-13.1,-76.4,-27,-67,-38.4C-57.6,-49.8,-45.2,-58.7,-32.7,-66.4C-20.2,-74.1,-7.6,-80.6,3.8,-87.2L15.1,-93.8" transform="translate(100 100)" />
-                             </svg>
-                        </div>
-
                         {/* Footer Logos */}
                         <div className="mt-16 flex flex-col md:flex-row justify-between items-center border-t-2 border-[#1a5c50] pt-8">
                              <div className="flex items-center space-x-4 mb-4 md:mb-0">
@@ -340,8 +332,8 @@ const MotorcycleDetailPage: React.FC = () => {
                              </div>
                              
                              <div className="flex items-center space-x-2">
-                                 <span className="text-white font-black text-3xl italic">Ayocet /</span>
-                                 <span className="text-[#00bfa5] font-black text-3xl italic">JT</span>
+                                 <span className="text-[#d946ef] font-black text-3xl italic uppercase pr-1">Ayocet</span>
+                                 <span className="text-[#00bfa5] font-black text-3xl italic uppercase pr-1">/ JT</span>
                              </div>
                         </div>
                     </div>

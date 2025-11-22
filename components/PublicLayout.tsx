@@ -1,7 +1,7 @@
 
 import React, { ReactNode, useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
-import { CONTACT_WHATSAPP_LINK, CONTACT_TELEGRAM_LINK, CONTACT_PHONE_NUMBER, CONTACT_TELEGRAM_USER } from '../constants';
+import { CONTACT_WHATSAPP_LINK, CONTACT_FACEBOOK_LINK, CONTACT_PHONE_NUMBER, CONTACT_FACEBOOK_NAME } from '../constants';
 
 const Header: React.FC = () => {
     const [isOpen, setIsOpen] = useState(false);
@@ -12,15 +12,29 @@ const Header: React.FC = () => {
     return (
         <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md shadow-md border-b border-gray-100">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="flex items-center justify-between h-20">
-                    {/* Logo Racing Style */}
-                    <Link to="/" className="flex items-center group">
-                        <span className="text-3xl font-black italic uppercase tracking-tighter text-[#002d40] group-hover:scale-105 transition-transform">
-                            Motos
-                        </span>
-                        <span className="text-3xl font-black italic uppercase tracking-tighter text-[#00bfa5] ml-1 group-hover:scale-105 transition-transform">
-                            JT
-                        </span>
+                <div className="flex items-center justify-between h-24">
+                    {/* Logo Image */}
+                    <Link to="/" className="flex items-center group py-2">
+                        <img 
+                            src="logo.png" 
+                            alt="Ayocet / JT" 
+                            className="h-16 md:h-20 w-auto max-w-[200px] object-contain transition-transform duration-300 group-hover:scale-105 drop-shadow-lg"
+                            onError={(e) => {
+                                // Fallback text if image is missing
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                                target.nextElementSibling?.classList.remove('hidden');
+                            }}
+                        />
+                        {/* Fallback Text (Hidden by default if image loads) */}
+                        <div className="hidden flex items-center">
+                            <span className="text-3xl font-black italic uppercase tracking-tight text-[#d946ef] pr-2">
+                                Ayocet
+                            </span>
+                            <span className="text-3xl font-black italic uppercase tracking-tight text-[#00bfa5] ml-1 pr-2">
+                                / JT
+                            </span>
+                        </div>
                     </Link>
                     
                     <div className="md:hidden">
@@ -53,46 +67,46 @@ const Header: React.FC = () => {
 };
 
 const Footer: React.FC = () => (
-    <footer className="bg-[#00332a] text-white mt-auto relative overflow-hidden">
+    <footer className="bg-[#002d40] text-white mt-auto relative overflow-hidden">
         {/* Decoración de fondo */}
-        <div className="absolute top-0 left-0 w-full h-2 bg-[#00bfa5]"></div>
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#d946ef] to-[#00bfa5]"></div>
         
         <div className="container mx-auto py-12 px-4 sm:px-6 lg:px-8 relative z-10">
             <div className="flex flex-col md:flex-row justify-between items-center text-center md:text-left space-y-8 md:space-y-0">
                 <div className="flex flex-col items-center md:items-start">
                     <div className="flex items-center mb-4">
-                        <span className="text-3xl font-black italic uppercase tracking-tighter text-white">
-                            Motos
+                        <span className="text-3xl font-black italic uppercase tracking-tight text-[#d946ef] drop-shadow-[0_0_5px_rgba(217,70,239,0.5)] pr-2">
+                            Ayocet
                         </span>
-                        <span className="text-3xl font-black italic uppercase tracking-tighter text-[#00bfa5] ml-1">
-                            JT
+                        <span className="text-3xl font-black italic uppercase tracking-tight text-[#00bfa5] ml-1 drop-shadow-[0_0_5px_rgba(0,191,165,0.5)] pr-2">
+                            / JT
                         </span>
                     </div>
                     <p className="text-gray-300 max-w-xs italic">
-                        Tu mejor opción para adquirir motocicletas en Cuba. Calidad y confianza garantizada.
+                        La evolución en dos ruedas. Potencia, estilo y confianza en cada viaje.
                     </p>
                 </div>
                 
                 <div className="flex flex-col items-center md:items-start space-y-4">
-                    <h3 className="text-xl font-black italic uppercase text-[#00bfa5] mb-2 tracking-wide">Contacto Directo</h3>
+                    <h3 className="text-xl font-black italic uppercase text-white mb-2 tracking-wide border-b-2 border-[#d946ef] pb-1">Contacto</h3>
                     <a href={CONTACT_WHATSAPP_LINK} target="_blank" rel="noopener noreferrer" className="flex items-center space-x-3 hover:text-[#00bfa5] transition-colors group">
-                        <div className="bg-white/10 p-2 rounded-full group-hover:bg-white/20 transition-colors">
+                        <div className="bg-white/10 p-2 rounded-full group-hover:bg-[#00bfa5]/20 transition-colors">
                             <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" alt="WhatsApp" className="h-6 w-6" />
                         </div>
                         <span className="font-bold tracking-wide">{CONTACT_PHONE_NUMBER}</span>
                     </a>
-                    <a href={CONTACT_TELEGRAM_LINK} target="_blank" rel="noopener noreferrer" className="flex items-center space-x-3 hover:text-[#00bfa5] transition-colors group">
-                         <div className="bg-white/10 p-2 rounded-full group-hover:bg-white/20 transition-colors">
-                            <img src="https://upload.wikimedia.org/wikipedia/commons/8/82/Telegram_logo.svg" alt="Telegram" className="h-6 w-6" />
+                    <a href={CONTACT_FACEBOOK_LINK} target="_blank" rel="noopener noreferrer" className="flex items-center space-x-3 hover:text-[#1877F2] transition-colors group">
+                         <div className="bg-white/10 p-2 rounded-full group-hover:bg-[#1877F2]/20 transition-colors">
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/b/b8/2021_Facebook_icon.svg" alt="Facebook" className="h-6 w-6" />
                         </div>
-                        <span className="font-bold tracking-wide">{CONTACT_TELEGRAM_USER}</span>
+                        <span className="font-bold tracking-wide">{CONTACT_FACEBOOK_NAME}</span>
                     </a>
                 </div>
             </div>
             
             <div className="text-center text-gray-400 mt-12 border-t border-[#1a5c50] pt-6 flex flex-col md:flex-row justify-between items-center">
-                <p className="text-sm">&copy; {new Date().getFullYear()} Catalogo de Motos JT. Todos los derechos reservados.</p>
-                <Link to="/admin/login" className="mt-4 md:mt-0 text-sm font-bold text-[#00bfa5] hover:text-white transition-colors uppercase tracking-wider">
+                <p className="text-sm">&copy; {new Date().getFullYear()} Ayocet / JT. Todos los derechos reservados.</p>
+                <Link to="/admin/login" className="mt-4 md:mt-0 text-sm font-bold text-[#d946ef] hover:text-white transition-colors uppercase tracking-wider">
                     Panel de Administrador
                 </Link>
             </div>

@@ -1,5 +1,5 @@
 {
-  "name": "Catalogo de Motos JT",
-  "description": "Una aplicación web para un catálogo de motocicletas en Cuba, con un panel de administración para gestionar el inventario, todo conectado a Supabase.",
+  "name": "Ayocet / JT",
+  "description": "Catálogo de motocicletas Ayocet / JT en Cuba.",
   "requestFramePermissions": []
 }
