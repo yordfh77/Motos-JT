@@ -93,7 +93,7 @@ const Footer: React.FC = () => (
                         <div className="bg-white/10 p-2 rounded-full group-hover:bg-[#00bfa5]/20 transition-colors">
                             <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" alt="WhatsApp" className="h-6 w-6" />
                         </div>
-                        <span className="font-bold tracking-wide">Ayocet/JT</span>
+                        <span className="font-bold tracking-wide">{CONTACT_PHONE_NUMBER}</span>
                     </a>
                     <a href={CONTACT_FACEBOOK_LINK} target="_blank" rel="noopener noreferrer" className="flex items-center space-x-3 hover:text-[#1877F2] transition-colors group">
                          <div className="bg-white/10 p-2 rounded-full group-hover:bg-[#1877F2]/20 transition-colors">
